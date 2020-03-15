@@ -1,11 +1,12 @@
 #' ---
-#' title: "Covid-19"
-#' author: ""
+#' title: "Covid-19 Latest Data"
+#' author: "Jordan Ayala"
 #' ---
 
 
 #+ setup, include=FALSE
 suppressMessages(library(tidyverse))
+library(lubridate)
 library(readr)
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(message = FALSE)
@@ -37,13 +38,11 @@ df <- raw_data %>%
   summarise(cases = sum(cases, na.rm = T)) %>% # Sum aforementioned regions
   ungroup()
 
-
 by_region <- df %>%
   filter(cases != 0) %>%
   group_by(dataset, region, date) %>%
-  summarise(cases = sum(cases, na.rm = T)) %>% # Sum all for a single date
-  summarise(cases = last(cases, order_by = date), first_case = min(date)) %>% # Last for a single date
-  mutate(first_case = min(first_case)) %>%
+  summarise(cases = sum(cases, na.rm = T), last_report = max(date)) %>% # Sum all for a single date
+  summarise(cases = last(cases, order_by = date), last_report = max(last_report)) %>% # Last for a single date
   ungroup() %>%
   pivot_wider(names_from = dataset, values_from = cases)
 
@@ -57,7 +56,10 @@ most_cases <- by_region %>%
 
 df_most_cases <- df %>%
   filter(region %in% most_cases$region) %>%
-  group_by(dataset, region, date) %>%
+  group_by(dataset, region, date, province) %>%
+  summarise(cases = sum(cases))
+
+df_most_cases_region <- df_most_cases %>%
   summarise(cases = sum(cases))
 
 #+ most_cases
@@ -67,10 +69,23 @@ most_cases %>%
 
 #'
 #+ plot
+
 df_most_cases %>%
+  filter(region %in% c("China")) %>%
+  pivot_wider(names_from = dataset, values_from = cases) %>%
+  top_n(5, confirmed) %>%
+  pivot_longer(c(confirmed, deaths, recovered), names_to = "dataset", values_to = "cases") %>%
+  ggplot(aes(x = date, y = cases, color = province)) +
+  geom_line() +
+  scale_x_date(breaks = scales::pretty_breaks(10)) + 
+  facet_wrap(vars(dataset), ncol = 1, scales = "free_y") +
+  labs(title = "Cases in China")
+
+df_most_cases_region %>%
   filter(region %notin% c("China")) %>%
+  filter(date >= ymd("2020-02-20")) %>%
   ggplot(aes(x = date, y = cases, color = region)) +
   geom_line() +
-  facet_wrap(vars(dataset), ncol = 1, scales = "free_y")
-
-df %>% pivot_wider(names_from = dataset, values_from = cases) %>% View()
+  geom_point() +
+  facet_wrap(vars(dataset), ncol = 1, scales = "free_y") +
+  labs(title = "Cases around the world")

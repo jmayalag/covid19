@@ -36,7 +36,10 @@ df <- raw_data %>%
   mutate(region = str_replace(region, "Republic of Korea", "Korea, South")) %>% # Join China, since changed the region recently
   group_by(dataset, region, date, province, lat, long) %>%
   summarise(cases = sum(cases, na.rm = T)) %>% # Sum aforementioned regions
-  ungroup()
+  ungroup() %>%
+  pivot_wider(names_from = dataset, values_from = cases) %>%
+  mutate(active = confirmed - deaths - recovered) %>%
+  pivot_longer(-c(region, date, province, lat, long), names_to = "dataset", values_to = "cases")
 
 by_region <- df %>%
   filter(cases != 0) %>%
@@ -89,3 +92,10 @@ df_most_cases_region %>%
   geom_point() +
   facet_wrap(vars(dataset), ncol = 1, scales = "free_y") +
   labs(title = "Cases around the world")
+
+last_date <- max(df$date)
+
+last_data <- df %>%
+  filter(date == last_date)
+
+write_csv(last_data, "last_ts.csv")

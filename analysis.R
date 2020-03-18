@@ -69,20 +69,35 @@ df_most_cases_region <- df_most_cases %>%
 most_cases %>%
   knitr::kable()
 
+china <- df_most_cases %>%
+  filter(region %in% c("China"))
 
 #'
 #+ plot
 
-df_most_cases %>%
-  filter(region %in% c("China")) %>%
+china %>%
+  filter(province %in% c("Hubei")) %>%
   pivot_wider(names_from = dataset, values_from = cases) %>%
   top_n(5, confirmed) %>%
-  pivot_longer(c(confirmed, deaths, recovered), names_to = "dataset", values_to = "cases") %>%
+  pivot_longer(c(confirmed, deaths, recovered, active), names_to = "dataset", values_to = "cases") %>%
   ggplot(aes(x = date, y = cases, color = province)) +
   geom_line() +
+  geom_point() +
   scale_x_date(breaks = scales::pretty_breaks(10)) + 
   facet_wrap(vars(dataset), ncol = 1, scales = "free_y") +
-  labs(title = "Cases in China")
+  labs(title = "Cases in Hubei")
+
+china %>%
+  filter(province %notin% c("Hubei")) %>%
+  pivot_wider(names_from = dataset, values_from = cases) %>%
+  top_n(5, confirmed) %>%
+  pivot_longer(c(confirmed, deaths, recovered, active), names_to = "dataset", values_to = "cases") %>%
+  ggplot(aes(x = date, y = cases, color = province)) +
+  geom_line() +
+  geom_point() +
+  scale_x_date(breaks = scales::pretty_breaks(10)) + 
+  facet_wrap(vars(dataset), ncol = 1, scales = "free_y") +
+  labs(title = "Cases in other provinces of China")
 
 df_most_cases_region %>%
   filter(region %notin% c("China")) %>%
